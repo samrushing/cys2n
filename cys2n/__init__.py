@@ -3,7 +3,7 @@
 import socket
 import unittest
 
-from cys2n import *
+from .cys2n import *
 
 protocol_version_map = {
     'SSLv2' : 20,
