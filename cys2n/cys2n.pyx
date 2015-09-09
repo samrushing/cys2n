@@ -192,9 +192,11 @@ cdef class Connection:
         cdef const char * p = <const char *>(data) + pos
         cdef ssize_t dlen = len(data)
         assert (pos < len(data))
-        with nogil:
-            n = s2n_send (self.conn, p, dlen - pos, &blocked)
-        self._check_blocked (n, blocked, errno)
+        while 1:
+            with nogil:
+                n = s2n_send (self.conn, p, dlen - pos, &blocked)
+            if not self._check_blocked (n, blocked, errno):
+                break
         return n, blocked
 
     cpdef recv (self, ssize_t size):
@@ -214,7 +216,9 @@ cdef class Connection:
     cpdef shutdown (self):
         cdef s2n_blocked_status blocked = S2N_NOT_BLOCKED
         cdef int r = 0
-        with nogil:
-            r = s2n_shutdown (self.conn, &blocked)
-        self._check_blocked (r, blocked, errno)
+        while 1:
+            with nogil:
+                r = s2n_shutdown (self.conn, &blocked)
+            if not self._check_blocked (r, blocked, errno):
+                break
         return blocked
