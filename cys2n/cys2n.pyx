@@ -4,101 +4,8 @@ from cpython.bytes cimport PyBytes_FromStringAndSize
 from libc.stdint cimport uint64_t, uint32_t, uint16_t, uint8_t
 from libc.errno cimport errno, EAGAIN as EWOULDBLOCK
 
-class S2N:
-    SSLv2 = 20
-    SSLv3 = 30
-    TLS10 = 31
-    TLS11 = 32
-    TLS12 = 33
-
-
-cdef extern from "s2n.h" nogil:
-    struct s2n_config
-    int s2n_errno
-    int s2n_init ()
-    int s2n_cleanup ()
-
-    s2n_config *s2n_config_new ()
-    int s2n_config_free (s2n_config *config)
-    int s2n_config_free_dhparams (s2n_config *config)
-    int s2n_config_free_cert_chain_and_key (s2n_config *config)
-    const char *s2n_strerror (int error, const char *lang)
-    int s2n_config_add_cert_chain_and_key (
-        s2n_config *config,
-        char *cert_chain_pem,
-        char *private_key_pem
-    )
-    int s2n_config_add_cert_chain_and_key_with_status (
-        s2n_config *config,
-        char *cert_chain_pem,
-        char *private_key_pem,
-        const uint8_t *status,
-        uint32_t length
-    )
-    int s2n_config_add_dhparams (s2n_config *config, char *dhparams_pem)
-    int s2n_config_set_key_exchange_preferences (s2n_config *config, const char *preferences)
-    int s2n_config_set_cipher_preferences (
-        s2n_config *config,
-        const char *version
-    )
-    int s2n_config_set_protocol_preferences (
-        s2n_config *config,
-        const char * const *protocols,
-        int protocol_count
-    )
-
-    ctypedef enum s2n_status_request_type:
-        S2N_STATUS_REQUEST_NONE = 0,
-        S2N_STATUS_REQUEST_OCSP = 1
-
-    int s2n_config_set_status_request_type (s2n_config *config, s2n_status_request_type type)
-
-    struct s2n_connection
-
-    ctypedef enum s2n_mode:
-        S2N_SERVER,
-        S2N_CLIENT
-
-    s2n_connection *s2n_connection_new (s2n_mode mode)
-    int s2n_connection_set_config (s2n_connection *conn, s2n_config *config)
-
-    int s2n_connection_set_fd (s2n_connection *conn, int readfd)
-    int s2n_connection_set_read_fd (s2n_connection *conn, int readfd)
-    int s2n_connection_set_write_fd (s2n_connection *conn, int readfd)
-
-    ctypedef enum s2n_blinding:
-        S2N_BUILT_IN_BLINDING,
-        S2N_SELF_SERVICE_BLINDING
-
-    int s2n_connection_set_blinding (s2n_connection *conn, s2n_blinding blinding)
-    int s2n_connection_get_delay (s2n_connection *conn)
-
-    int s2n_set_server_name (s2n_connection *conn, const char *server_name)
-    const char *s2n_get_server_name (s2n_connection *conn)
-    const char *s2n_get_application_protocol (s2n_connection *conn)
-    const uint8_t *s2n_connection_get_ocsp_response (s2n_connection *conn, uint32_t *length)
-
-    ctypedef enum s2n_blocked_status:
-        S2N_NOT_BLOCKED = 0,
-        S2N_BLOCKED_ON_READ,
-        S2N_BLOCKED_ON_WRITE,
-
-    int s2n_negotiate (s2n_connection *conn, s2n_blocked_status *blocked)
-    ssize_t s2n_send (s2n_connection *conn, void *buf, ssize_t size, s2n_blocked_status *blocked)
-    ssize_t s2n_recv (s2n_connection *conn,  void *buf, ssize_t size, s2n_blocked_status *blocked)
-
-    int s2n_connection_wipe (s2n_connection *conn)
-    int s2n_connection_free (s2n_connection *conn)
-    int s2n_shutdown (s2n_connection *conn, s2n_blocked_status *blocked)
-
-    uint64_t s2n_connection_get_wire_bytes_in (s2n_connection *conn)
-    uint64_t s2n_connection_get_wire_bytes_out (s2n_connection *conn)
-    int s2n_connection_get_client_protocol_version (s2n_connection *conn)
-    int s2n_connection_get_server_protocol_version (s2n_connection *conn)
-    int s2n_connection_get_actual_protocol_version (s2n_connection *conn)
-    int s2n_connection_get_client_hello_version (s2n_connection *conn)
-    const char *s2n_connection_get_cipher (s2n_connection *conn)
-    int s2n_connection_get_alert (s2n_connection *conn)
+import sys
+W = sys.stderr.write
 
 class MODE:
     SERVER = S2N_SERVER
@@ -133,7 +40,7 @@ init()
 
 cdef class Config:
 
-    cdef s2n_config * c
+    #cdef s2n_config * c
 
     def __init__ (self):
         self.c = s2n_config_new()
@@ -164,15 +71,21 @@ cdef class Config:
         assert (len(protocols) < 50)
         for i, proto in enumerate (protocols):
             protos[i] = proto
-        count = i
+            count += 1
         check (s2n_config_set_protocol_preferences (self.c, <const char **> protos, count))
 
     def set_status_request_type (self, s2n_status_request_type stype):
         check (s2n_config_set_status_request_type (self.c, stype))
 
+cdef maybe_string (char * s):
+    if s:
+        return s
+    else:
+        return None
+
 cdef class Connection:
 
-    cdef s2n_connection * conn
+    #cdef s2n_connection * conn
 
     def __init__ (self, s2n_mode mode):
         self.conn = s2n_connection_new (mode)
@@ -199,11 +112,7 @@ cdef class Connection:
         check (s2n_set_server_name (self.conn, server_name))
 
     def get_server_name (self):
-        cdef const char * name = s2n_get_server_name (self.conn)
-        if name is not NULL:
-            return name
-        else:
-            return None
+        return maybe_string (s2n_get_server_name (self.conn))
 
     def set_blinding (self, s2n_blinding blinding):
         check (s2n_connection_set_blinding (self.conn, blinding))
@@ -230,7 +139,7 @@ cdef class Connection:
         return s2n_connection_get_actual_protocol_version (self.conn)
 
     def get_application_protocol (self):
-        return s2n_get_application_protocol (self.conn)
+        return maybe_string (s2n_get_application_protocol (self.conn))
 
     def get_ocsp_response (self):
         cdef const uint8_t * r
@@ -242,31 +151,42 @@ cdef class Connection:
         return s2n_connection_get_alert (self.conn)
 
     def get_cipher (self):
-        return s2n_connection_get_cipher (self.conn)
+        return maybe_string (s2n_connection_get_cipher (self.conn))
 
     # I/O
 
-    cdef _check_blocked (self, int r, s2n_blocked_status blocked):
+    # override these if you're using an event-driven system.
+    cdef want_read (self):
+        raise WantRead
+
+    cdef want_write (self):
+        raise WantWrite
+
+    cdef bint _check_blocked (self, int r, s2n_blocked_status blocked, int errno) except -1:
         if r < 0:
             if errno == EWOULDBLOCK:
                 if blocked == S2N_BLOCKED_ON_READ:
-                    raise WantRead
+                    self.want_read()
+                    return True
                 elif blocked == S2N_BLOCKED_ON_WRITE:
-                    raise WantWrite
+                    self.want_write()
+                    return True
                 else:
                     raise_s2n_error()
             else:
                 raise_s2n_error()
+        else:
+            return False
 
-    def negotiate (self):
+    cpdef negotiate (self):
         cdef s2n_blocked_status blocked = S2N_NOT_BLOCKED
         cdef int r = 0
         with nogil:
             r = s2n_negotiate (self.conn, &blocked)
-        self._check_blocked (r, blocked)
+        self._check_blocked (r, blocked, errno)
         return blocked
 
-    def send (self, bytes data, int pos=0):
+    cpdef send (self, bytes data, int pos=0):
         cdef s2n_blocked_status blocked = S2N_NOT_BLOCKED
         cdef ssize_t n
         cdef const char * p = <const char *>(data) + pos
@@ -274,23 +194,27 @@ cdef class Connection:
         assert (pos < len(data))
         with nogil:
             n = s2n_send (self.conn, p, dlen - pos, &blocked)
-        self._check_blocked (n, blocked)
+        self._check_blocked (n, blocked, errno)
         return n, blocked
 
-    def recv (self, ssize_t size):
+    cpdef recv (self, ssize_t size):
         cdef s2n_blocked_status blocked = S2N_NOT_BLOCKED
         cdef bytes result = PyBytes_FromStringAndSize (NULL, size)
         cdef char * p = <char*>result
         cdef ssize_t n = 0
-        with nogil:
-            n = s2n_recv (self.conn, p, size, &blocked)
-        self._check_blocked (n, blocked)
+        cdef int saved_errno = 0
+        while 1:
+            with nogil:
+                n = s2n_recv (self.conn, p, size, &blocked)
+                saved_errno = errno
+            if not self._check_blocked (n, blocked, saved_errno):
+                break
         return result[:n], blocked
 
-    def shutdown (self):
+    cpdef shutdown (self):
         cdef s2n_blocked_status blocked = S2N_NOT_BLOCKED
         cdef int r = 0
         with nogil:
             r = s2n_shutdown (self.conn, &blocked)
-        self._check_blocked (r, blocked)
+        self._check_blocked (r, blocked, errno)
         return blocked

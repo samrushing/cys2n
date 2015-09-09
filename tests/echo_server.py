@@ -7,7 +7,7 @@ import logging
 import sys
 W = sys.stderr.write
 
-from cys2n import s2n_socket, Config, Error as S2N_Error
+from cys2n import PROTOCOL, s2n_socket, Config, Error as S2N_Error
 
 # XXX EC not available in s2n yet?
 
@@ -49,7 +49,20 @@ gYEAIxmqzFn2JD4+Yp+wr2P+KiqCeP1NeNuDUsfqbx4p5xgM9fEMX3lnZsWeiCkX
 cfg = Config()
 cfg.add_cert_chain_and_key (crt, key)
 
+def unproto (n):
+    return PROTOCOL.reverse_map.get (n, "unknown")
+
 def echo (conn):
+    # force negotiation here (rather than letting it happen transparently)
+    #   so we can log all this nice information...
+    conn.negotiate()
+    s2n = conn.conn
+    logging.info ('client_hello_version: %s', unproto (s2n.get_client_hello_version()))
+    logging.info ('client_protocol_version: %s', unproto (s2n.get_client_protocol_version()))
+    logging.info ('server_protocol_version: %s', unproto (s2n.get_server_protocol_version()))
+    logging.info ('actual_protocol_version: %s', unproto (s2n.get_actual_protocol_version()))
+    logging.info ('application_protocol: %r', s2n.get_application_protocol())
+    logging.info ('cipher: %s', s2n.get_cipher())
     try:
         while 1:
             block = conn.recv (1024)

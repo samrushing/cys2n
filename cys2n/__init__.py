@@ -5,6 +5,21 @@ import unittest
 
 from cys2n import *
 
+protocol_version_map = {
+    'SSLv2' : 20,
+    'SSLv3' : 30,
+    'TLS10' : 31,
+    'TLS11' : 32,
+    'TLS12' : 33,
+}
+
+class PROTOCOL:
+    reverse_map = {}
+
+for name, val in protocol_version_map.iteritems():
+    setattr (PROTOCOL, name, val)
+    PROTOCOL.reverse_map[val] = name
+
 class s2n_socket:
 
     def __init__ (self, cfg, pysock, conn=None):
@@ -41,11 +56,14 @@ class s2n_socket:
 
     def _check_negotiated (self):
         if not self.negotiated:
-            while 1:
-                blocked = self.conn.negotiate()
-                if not blocked:
-                    break
-            self.negotiated = True
+            self.negotiate()
+
+    def negotiate (self):
+        while 1:
+            blocked = self.conn.negotiate()
+            if not blocked:
+                break
+        self.negotiated = True
 
     def recv (self, block_size):
         self._check_negotiated()

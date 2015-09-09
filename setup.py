@@ -15,6 +15,7 @@ setup (
     license="MIT",
     url="http://github.com/samrushing/cys2n",
     packages = find_packages(),
+    package_data = {'cys2n': ['*.pxd']},
     ext_modules= ext_modules,
     download_url = 'https://pypi.python.org/pypi?name=cys2n',
 )
