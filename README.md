@@ -8,6 +8,8 @@ See the ``tests`` directory for a simple multi-threaded echo server.
 The echo client uses Python's SSLSocket to test it.  S2N client mode
 has not been tested yet.
 
+Tested under Python 2.7.9 and Python 3.4.
+
 Installing
 ----------
 
