@@ -12,7 +12,7 @@ setup (
     version='0.1',
     description='Cython wrapper for Amazon s2n',
     author='Sam Rushing',
-    license="MIT",
+    license="BSD",
     url="http://github.com/samrushing/cys2n",
     packages = find_packages(),
     package_data = {'cys2n': ['*.pxd']},
