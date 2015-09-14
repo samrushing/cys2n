@@ -3,6 +3,8 @@
 import socket
 import unittest
 
+__version__ = '0.1.1'
+
 from .cys2n import *
 
 protocol_version_map = {
