@@ -16,7 +16,7 @@ protocol_version_map = {
 class PROTOCOL:
     reverse_map = {}
 
-for name, val in protocol_version_map.iteritems():
+for name, val in protocol_version_map.items():
     setattr (PROTOCOL, name, val)
     PROTOCOL.reverse_map[val] = name
 
@@ -76,8 +76,7 @@ class s2n_socket:
                 break
             else:
                 left -= len(b)
-                #self.wait_for_read()
-        return ''.join (r)
+        return b''.join (r)
 
     def send (self, data):
         self._check_negotiated()
@@ -89,7 +88,6 @@ class s2n_socket:
             if not more:
                 break
             else:
-                #self.wait_for_write()
                 pass
             left -= n
         return pos
