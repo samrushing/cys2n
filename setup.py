@@ -9,9 +9,10 @@ ext_modules = cythonize ([ Extension ('cys2n.cys2n', ['cys2n/cys2n.pyx'], librar
 
 setup (
     name='cys2n',
-    version='0.1',
+    version='0.1.1',
     description='Cython wrapper for Amazon s2n',
     author='Sam Rushing',
+    author_email='gitsam@rushing.nightmare.com',
     license="BSD",
     url="http://github.com/samrushing/cys2n",
     packages = find_packages(),
