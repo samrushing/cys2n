@@ -181,10 +181,13 @@ cdef class Connection:
     cpdef negotiate (self):
         cdef s2n_blocked_status blocked = S2N_NOT_BLOCKED
         cdef int r = 0
-        with nogil:
-            r = s2n_negotiate (self.conn, &blocked)
-        self._check_blocked (r, blocked, errno)
-        return blocked
+        cdef int saved_errno = 0
+        while 1:
+            with nogil:
+                r = s2n_negotiate (self.conn, &blocked)
+                saved_errno = errno
+            if not self._check_blocked (r, blocked, saved_errno):
+                break
 
     cpdef send (self, bytes data, int pos=0):
         cdef s2n_blocked_status blocked = S2N_NOT_BLOCKED

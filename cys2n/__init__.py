@@ -61,11 +61,9 @@ class s2n_socket:
             self.negotiate()
 
     def negotiate (self):
-        while 1:
-            blocked = self.conn.negotiate()
-            if not blocked:
-                break
-        self.negotiated = True
+        if not self.negotiated:
+            self.conn.negotiate()
+            self.negotiated = True
 
     def recv (self, block_size):
         self._check_negotiated()
