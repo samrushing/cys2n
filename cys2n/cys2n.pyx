@@ -174,7 +174,7 @@ cdef class Connection:
                 else:
                     raise_s2n_error()
             else:
-                raise_s2n_error()
+                raise OSError (errno)
         else:
             return False
 
@@ -212,7 +212,9 @@ cdef class Connection:
             with nogil:
                 n = s2n_recv (self.conn, p, size, &blocked)
                 saved_errno = errno
-            if not self._check_blocked (n, blocked, saved_errno):
+            if n < 0 and saved_errno == 0 and s2n_errno == 0:
+                return '', 0
+            elif not self._check_blocked (n, blocked, saved_errno):
                 break
         return result[:n], blocked
 
